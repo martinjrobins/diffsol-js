@@ -96,4 +96,4 @@ From the `js/` directory:
 npm publish
 ```
 
-`prepublishOnly` runs the offline-safe publish checks and rebuilds the package before publishing. The full integration suite in `npm test` still expects a backend at `http://localhost:8080`. Replace the placeholder repository metadata in `package.json` before the first real release from the new repo.
+`prepublishOnly` runs the full test suite and rebuilds the package before publishing. Tests default to `https://diffsol-js.fly.dev` and can be overridden with `DIFFSOL_BACKEND_URL` if needed. Replace the placeholder repository metadata in `package.json` before the first real release from the new repo.

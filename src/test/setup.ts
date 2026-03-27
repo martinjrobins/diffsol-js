@@ -1,5 +1,7 @@
 import '@testing-library/jest-dom';
 
+jest.setTimeout(30000);
+
 // Polyfill fetch for jsdom test environment if not already available
 if (typeof global.fetch === 'undefined') {
   // Use node-fetch as a polyfill
@@ -13,5 +15,4 @@ if (typeof global.TextEncoder === 'undefined') {
   global.TextEncoder = TextEncoder as any;
   global.TextDecoder = TextDecoder as any;
 }
-
 

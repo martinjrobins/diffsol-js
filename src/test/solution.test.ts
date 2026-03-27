@@ -6,6 +6,7 @@ import {
   LinearSolverType,
   OdeSolverType,
 } from '../index';
+import { TEST_BACKEND_URL } from './test-config';
 
 const TEST_MODEL = `
 in_i { k = 1 }
@@ -15,7 +16,7 @@ out_i { y }
 `;
 
 const config = {
-  backendUrl: 'http://localhost:8080',
+  backendUrl: TEST_BACKEND_URL,
 };
 
 describe('Solution Wrapper', () => {

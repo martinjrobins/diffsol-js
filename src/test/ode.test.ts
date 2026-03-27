@@ -12,6 +12,7 @@
  */
 
 import { compile, Ode, MatrixType, LinearSolverType, OdeSolverType, DiffsolError } from '../index';
+import { TEST_BACKEND_URL } from './test-config';
 
 // Simple DiffSL model for testing: exponential decay dy/dt = -k*y
 const TEST_MODEL = `
@@ -22,7 +23,7 @@ out_i { y }
 `;
 
 const config = {
-  backendUrl: 'http://localhost:8080',
+  backendUrl: TEST_BACKEND_URL,
 };
 
 describe('diffsol WASM Integration', () => {

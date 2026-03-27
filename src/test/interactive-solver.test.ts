@@ -3,6 +3,9 @@ import { compile } from '../compile';
 import { MatrixType } from '../matrix-type';
 import { LinearSolverType } from '../linear-solver-type';
 import { OdeSolverType } from '../ode-solver-type';
+import { TEST_BACKEND_URL } from './test-config';
+
+const TEST_MODULE_CONFIG = { backendUrl: TEST_BACKEND_URL };
 
 // Mock Plotly
 jest.mock('plotly.js', () => ({
@@ -83,7 +86,7 @@ describe('Interactive Solver', () => {
       const config: InteractiveSolverConfig = {
         divId: 'nonexistent',
         diffslCode: 'in_i { k = 1 }',
-        moduleConfig: { backendUrl: 'http://localhost:8080' },
+        moduleConfig: TEST_MODULE_CONFIG,
       };
 
       await expect(createInteractiveSolver(config)).rejects.toThrow(
@@ -101,7 +104,7 @@ describe('Interactive Solver', () => {
           k1: { min: 0.1, max: 5, initial: 1, label: 'Decay Rate 1' },
           k2: { min: 0, max: 10, initial: 5, label: 'Decay Rate 2' },
         },
-        moduleConfig: { backendUrl: 'http://localhost:8080' },
+        moduleConfig: TEST_MODULE_CONFIG,
       };
 
       mockOde.solve.mockReturnValue(makeMockSolution());
@@ -120,7 +123,7 @@ describe('Interactive Solver', () => {
         sliders: {
           k: { min: 0.1, max: 5, initial: 2.5, label: 'Decay Rate' },
         },
-        moduleConfig: { backendUrl: 'http://localhost:8080' },
+        moduleConfig: TEST_MODULE_CONFIG,
       };
 
       mockOde.solve.mockReturnValue(makeMockSolution());
@@ -135,7 +138,7 @@ describe('Interactive Solver', () => {
       const config: InteractiveSolverConfig = {
         divId: 'test-solver',
         diffslCode: 'in_i { k = 1 }',
-        moduleConfig: { backendUrl: 'http://localhost:8080' },
+        moduleConfig: TEST_MODULE_CONFIG,
       };
 
       mockOde.solve.mockReturnValue(makeMockSolution());
@@ -157,7 +160,7 @@ describe('Interactive Solver', () => {
         sliders: {
           k: { min: 0.1, max: 5, initial: 1, label: 'Decay Rate' },
         },
-        moduleConfig: { backendUrl: 'http://localhost:8080' },
+        moduleConfig: TEST_MODULE_CONFIG,
       };
 
       mockOde.solve.mockReturnValue(makeMockSolution());
@@ -172,7 +175,7 @@ describe('Interactive Solver', () => {
       const config: InteractiveSolverConfig = {
         divId: 'test-solver',
         diffslCode: 'in_i { k = 1 }',
-        moduleConfig: { backendUrl: 'http://localhost:8080' },
+        moduleConfig: TEST_MODULE_CONFIG,
         showCodeEditor: true,
       };
 
@@ -189,7 +192,7 @@ describe('Interactive Solver', () => {
       const config: InteractiveSolverConfig = {
         divId: 'test-solver',
         diffslCode: 'in_i { k = 1 }',
-        moduleConfig: { backendUrl: 'http://localhost:8080' },
+        moduleConfig: TEST_MODULE_CONFIG,
         showCodeEditor: false,
       };
 
@@ -206,7 +209,7 @@ describe('Interactive Solver', () => {
       const config: InteractiveSolverConfig = {
         divId: 'test-solver',
         diffslCode: 'in_i { k = 1 }',
-        moduleConfig: { backendUrl: 'http://localhost:8080' },
+        moduleConfig: TEST_MODULE_CONFIG,
         plotHeight: 700,
       };
 
@@ -226,7 +229,7 @@ describe('Interactive Solver', () => {
         sliders: {
           k: { label: 'Parameter K' },
         },
-        moduleConfig: { backendUrl: 'http://localhost:8080' },
+        moduleConfig: TEST_MODULE_CONFIG,
         odeSolverType: OdeSolverType.Tsit45,
         linearSolverType: LinearSolverType.Klu,
         matrixType: MatrixType.FaerSparse,
@@ -238,7 +241,7 @@ describe('Interactive Solver', () => {
 
       expect(compile).toHaveBeenCalledWith(
         'test',
-        { backendUrl: 'http://localhost:8080' },
+        TEST_MODULE_CONFIG,
         MatrixType.FaerSparse,
         LinearSolverType.Klu,
         OdeSolverType.Tsit45
@@ -249,7 +252,7 @@ describe('Interactive Solver', () => {
       const config: InteractiveSolverConfig = {
         divId: 'test-solver',
         diffslCode: 'in_i { k = 1 }',
-        moduleConfig: { backendUrl: 'http://localhost:8080' },
+        moduleConfig: TEST_MODULE_CONFIG,
         showHelp: true,
       };
 
@@ -266,7 +269,7 @@ describe('Interactive Solver', () => {
       const config: InteractiveSolverConfig = {
         divId: 'test-solver',
         diffslCode: 'in_i { k = 1 }',
-        moduleConfig: { backendUrl: 'http://localhost:8080' },
+        moduleConfig: TEST_MODULE_CONFIG,
         showHelp: false,
       };
 

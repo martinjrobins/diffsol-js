@@ -26,7 +26,7 @@
     "test:integration": "jest src/test/ode.test.ts src/test/ode-options.test.ts src/test/solution.test.ts",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "prepublishOnly": "npm run test:offline && npm run build"
+    "prepublishOnly": "npm test && npm run build"
   },
   "keywords": [
     "ode",
@@ -39,11 +39,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/your-org/diffsol-js.git"
+    "url": "git+https://github.com/martinjrobins/diffsol-js.git"
   },
-  "homepage": "https://github.com/your-org/diffsol-js#readme",
+  "homepage": "https://github.com/martinjrobins/diffsol-js#readme",
   "bugs": {
-    "url": "https://github.com/your-org/diffsol-js/issues"
+    "url": "https://github.com/martinjrobins/diffsol-js/issues"
   },
   "publishConfig": {
     "access": "public"
