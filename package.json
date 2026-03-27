@@ -1,0 +1,72 @@
+{
+  "name": "@diffsol/js",
+  "version": "0.1.0",
+  "description": "JavaScript/TypeScript bindings for diffsol ODE solver with WASM",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./interactive-solver.css": "./dist/interactive-solver.css"
+  },
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "node build.js",
+    "build:types": "tsc -p tsconfig.build.json --emitDeclarationOnly --outDir dist",
+    "build:cdn": "node build.js && echo 'CDN bundle: dist/diffsol.min.js'",
+    "docs": "typedoc && node fix-docs-paths.js",
+    "docs:dev": "typedoc && node fix-docs-paths.js",
+    "pack:check": "npm pack --dry-run",
+    "test": "jest",
+    "test:offline": "jest src/test/interactive-solver.test.ts",
+    "test:integration": "jest src/test/ode.test.ts src/test/ode-options.test.ts src/test/solution.test.ts",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "prepublishOnly": "npm run test:offline && npm run build"
+  },
+  "keywords": [
+    "ode",
+    "solver",
+    "differential-equations",
+    "wasm",
+    "scientific-computing"
+  ],
+  "author": "Martin Robinson <martinjrobins@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-org/diffsol-js.git"
+  },
+  "homepage": "https://github.com/your-org/diffsol-js#readme",
+  "bugs": {
+    "url": "https://github.com/your-org/diffsol-js/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "plotly.js": "^2.26.0",
+    "prism-code-editor": "^3.4.0"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.1.4",
+    "@types/jest": "^29.0.0",
+    "@types/node": "^20.0.0",
+    "@types/plotly.js": "^2.26.0",
+    "esbuild": "^0.27.3",
+    "jest": "^29.0.0",
+    "jest-environment-jsdom": "^29.0.0",
+    "node-fetch": "^2.7.0",
+    "ts-jest": "^29.0.0",
+    "typedoc": "^0.28.17",
+    "typescript": "^5.0.0"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
+}

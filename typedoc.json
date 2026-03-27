@@ -1,0 +1,19 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["src/index.ts"],
+  "tsconfig": "tsconfig.json",
+  "out": "docs",
+  "includeVersion": true,
+  "excludePrivate": true,
+  "excludeInternal": true,
+  "excludeProtected": false,
+  "excludeExternals": true,
+  "categorizeByGroup": true,
+  "hostedBaseUrl": "https://diffsol-js.fly.dev/docs/",
+  "useHostedBaseUrlForAbsoluteLinks": true,
+  "projectDocuments": [
+    "doc/getting_started.md",
+    "doc/overview_api.md",
+    "doc/interactive_solver.md"
+  ]
+}

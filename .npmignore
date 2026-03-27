@@ -1,0 +1,11 @@
+src/
+*.test.ts
+*.spec.ts
+jest.config.js
+tsconfig.json
+tsconfig.build.json
+package-lock.json
+.gitignore
+README.md
+coverage/
+node_modules/
