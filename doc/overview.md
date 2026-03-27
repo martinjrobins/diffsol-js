@@ -1,4 +1,4 @@
-# @diffsol/js - Overview
+# @martinjrobins/diffsol-js - Overview
 
 TypeScript/JavaScript bindings for diffsol ODE solver with WebAssembly.
 
@@ -28,7 +28,7 @@ Both modules share a single linear memory for zero-copy data exchange.
 Via npm for Node.js or bundlers:
 
 ```bash
-npm install @diffsol/js
+npm install @martinjrobins/diffsol-js
 ```
 
 Via CDN for browsers:
@@ -48,6 +48,6 @@ Via CDN for browsers:
 
 ## Next Steps
 
-- [Getting Started](getting_started.md) - Quick start guide with CDN examples
+- [Getting Started](getting_started.md) - Quick start guide with npm and CDN examples
 - [API Overview](overview_api.md) - High-level overview of the TypeScript API
 - [Interactive Solver](interactive_solver.md) - Build interactive UIs with live plotting

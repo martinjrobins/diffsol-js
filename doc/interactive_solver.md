@@ -28,8 +28,8 @@ The interactive solver provides a web-based UI with sliders and live Plotly plot
 ## Quick Example
 
 ```javascript
-// Access from global namespace when using CDN
-const { createInteractiveSolver } = window.diffsol;
+import { createInteractiveSolver } from '@martinjrobins/diffsol-js';
+import '@martinjrobins/diffsol-js/interactive-solver.css';
 
 await createInteractiveSolver({
   divId: 'solver',

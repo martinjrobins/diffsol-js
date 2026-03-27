@@ -1,6 +1,6 @@
 # API Overview
 
-This document provides a high-level overview of the @diffsol/js TypeScript API.
+This document provides a high-level overview of the @martinjrobins/diffsol-js TypeScript API.
 
 ## Core Functions
 
