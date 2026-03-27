@@ -1,11 +1,11 @@
-# @diffsol/js
+# @martinjrobins/diffsol-js
 
-TypeScript/JavaScript bindings for the diffsol ODE solver with WebAssembly.
+TypeScript/JavaScript bindings for the diffsol ODE solver with WebAssembly. See <https://github.com/martinjrobins/diffsol> for more details.
 
 ## Installation
 
 ```bash
-npm install @diffsol/js
+npm install @martinjrobins/diffsol-js
 ```
 
 This package is a thin browser client. It requires a hosted diffsol backend that exposes:
@@ -23,7 +23,7 @@ import {
   MatrixType,
   LinearSolverType,
   OdeSolverType,
-} from '@diffsol/js';
+} from '@martinjrobins/diffsol-js';
 ```
 
 ```ts
@@ -63,7 +63,7 @@ ode.dispose();
 The package also ships the interactive solver stylesheet:
 
 ```ts
-import '@diffsol/js/interactive-solver.css';
+import '@martinjrobins/diffsol-js/interactive-solver.css';
 ```
 
 If you are using the interactive UI components, your app must be able to bundle CSS and resolve the `plotly.js` dependency.

@@ -1,5 +1,5 @@
 /**
- * Main entry point for @diffsol/js
+ * Main entry point for @martinjrobins/diffsol-js
  */
 
 export { compile, validateModuleExports, getModuleImports } from './compile';

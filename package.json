@@ -1,5 +1,5 @@
 {
-  "name": "@diffsol/js",
+  "name": "@martinjrobins/diffsol-js",
   "version": "0.1.0",
   "description": "JavaScript/TypeScript bindings for diffsol ODE solver with WASM",
   "main": "dist/index.js",
