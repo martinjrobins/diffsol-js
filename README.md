@@ -2,6 +2,10 @@
 
 TypeScript/JavaScript bindings for the diffsol ODE solver with WebAssembly. See <https://github.com/martinjrobins/diffsol> for more details.
 
+## API Documentation
+
+<https://diffsol-js.fly.dev/docs>
+
 ## Installation
 
 ```bash
