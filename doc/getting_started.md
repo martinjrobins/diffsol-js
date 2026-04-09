@@ -5,10 +5,9 @@ This guide shows two ways to get started with diffsol:
 1. Install `@martinjrobins/diffsol-js` from npm in a bundler-based app.
 2. Load the CDN bundle directly in the browser.
 
-In both cases, the package is a thin client and requires a backend that exposes:
+In both cases, the package bundles the runtime WASM and requires a backend that exposes:
 
 - `POST /compile`
-- `GET /wasm/diffsol_js.wasm`
 
 The examples below use the public backend at `https://diffsol-js.fly.dev`.
 

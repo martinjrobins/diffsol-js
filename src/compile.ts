@@ -12,6 +12,7 @@ import { Ode } from './ode';
 import { MatrixType } from './matrix-type';
 import { LinearSolverType } from './linear-solver-type';
 import { OdeSolverType } from './ode-solver-type';
+import runtimeWasmBytes from '../wasm/diffsol_c.wasm';
 
 export interface ModuleConfig {
   /** URL to the backend service that compiles models */
@@ -49,10 +50,10 @@ export interface DiffsolModules {
 }
 
 /**
- * Cache for compiled runtime modules, keyed by backend URL
- * This avoids re-fetching and re-compiling the runtime WASM on every model compilation
+ * Cache for the compiled runtime module.
+ * The runtime WASM is bundled with the package, so it is identical across backend URLs.
  */
-const runtimeModuleCache = new Map<string, WebAssembly.Module>();
+let runtimeModulePromise: Promise<WebAssembly.Module> | undefined;
 
 /**
  * Compile DiffSL code and create a ready-to-use ODE solver
@@ -87,8 +88,8 @@ export async function compile(
   const modelWasm = base64ToArrayBuffer(compileResp.wasm);
   const modelModule = await WebAssembly.compile(modelWasm);
 
-  // Load bundled runtime from backend (with caching)
-  const runtimeModule = await getCachedRuntimeModule(config.backendUrl);
+  // Load bundled runtime from the package (with caching)
+  const runtimeModule = await getCachedRuntimeModule();
 
   // Build import objects
   const modelImports = buildModelImports(memory);
@@ -131,36 +132,16 @@ export async function compile(
 /**
  * Get or load the compiled runtime module, with caching
  */
-async function getCachedRuntimeModule(backendUrl: string): Promise<WebAssembly.Module> {
-  // Check cache first
-  if (runtimeModuleCache.has(backendUrl)) {
+async function getCachedRuntimeModule(): Promise<WebAssembly.Module> {
+  if (runtimeModulePromise) {
     console.log('Using cached runtime module');
-    return runtimeModuleCache.get(backendUrl)!;
+    return runtimeModulePromise;
   }
 
-  // Not in cache - fetch and compile
+  // Not in cache - compile the bundled runtime bytes
   console.log('Loading runtime module...');
-  const runtimeWasm = await loadBundledRuntime(backendUrl);
-  const runtimeModule = await WebAssembly.compile(runtimeWasm);
-  
-  // Store in cache
-  runtimeModuleCache.set(backendUrl, runtimeModule);
-  return runtimeModule;
-}
-
-/**
- * Load the bundled diffsol-js runtime WASM module from the backend server
- */
-async function loadBundledRuntime(backendUrl: string): Promise<ArrayBuffer> {
-  // Normalize backend URL by removing trailing slash
-  const normalizedUrl = backendUrl.replace(/\/$/, '');
-  
-  // Load from backend server which serves the bundled wasm file
-  const response = await fetch(`${normalizedUrl}/wasm/diffsol_js.wasm`);
-  if (!response.ok) {
-    throw new Error(`Failed to load runtime WASM: ${response.statusText}`);
-  }
-  return await response.arrayBuffer();
+  runtimeModulePromise = WebAssembly.compile(new Uint8Array(runtimeWasmBytes));
+  return runtimeModulePromise;
 }
 
 async function compileModel(diffslCode: string, backendUrl: string): Promise<CompileResponse> {
