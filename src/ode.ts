@@ -13,8 +13,6 @@ import {
   allocF64,
   freeF64,
   getF64,
-  allocateString,
-  freeString,
   allocateDependencies,
   freeDependencies
 } from './mem-utils';
@@ -78,10 +76,10 @@ export class Ode {
 
     // Create ODE handle immediately
     const exports = this.runtime.exports as any;
-    
-    // Pass DiffSL code so the builder sees the correct parameter/state counts
-    const codeString = diffslCode ?? 'in_i { _dummy = 0 } u_i { _dummy = 0 }';
-    const { ptr: codePtr, size: codeSize } = allocateString(this.runtime, this.memory, codeString);
+
+    if (typeof exports.diffsol_ode_new_external !== 'function') {
+      throw new Error('Runtime module does not export diffsol_ode_new_external');
+    }
     
     // Allocate dependency arrays in WASM memory
     const rhsStateDepsPtr = allocateDependencies(this.runtime, this.memory, rhsStateDeps);
@@ -89,8 +87,7 @@ export class Ode {
     const massStateDepsPtr = allocateDependencies(this.runtime, this.memory, massStateDeps);
 
     try {
-      this.odeHandle = exports.diffsol_ode_new(
-        codePtr,
+      this.odeHandle = exports.diffsol_ode_new_external(
         matrixType,
         linearSolver,
         odeSolver,
@@ -102,7 +99,6 @@ export class Ode {
         massStateDeps.length
       );
     } finally {
-      freeString(this.runtime, codePtr, codeSize);
       freeDependencies(this.runtime, rhsStateDepsPtr, rhsStateDeps.length);
       freeDependencies(this.runtime, rhsInputDepsPtr, rhsInputDeps.length);
       freeDependencies(this.runtime, massStateDepsPtr, massStateDeps.length);
@@ -220,10 +216,8 @@ export class Ode {
 
   /**
    * Solve ODE to final time.
-   *
-   * If `solution` is provided, it is reused and returned.
    */
-  solve(params: Float64Array, finalTime: number, solution?: Solution): Solution {
+  solve(params: Float64Array, finalTime: number): Solution {
     this.checkHandle();
     const exports = this.runtime.exports as any;
 
@@ -231,14 +225,12 @@ export class Ode {
     this.writeToHostArray(paramsArray, params);
 
     const outSolutionPtr = allocPtr(this.runtime);
-    const solutionHandle = solution ? solution.handle : 0;
 
     const result = exports.diffsol_ode_solve(
       this.odeHandle,
       this.getHostArrayPtr(paramsArray),
       params.length,
       finalTime,
-      solutionHandle,
       outSolutionPtr
     );
 
@@ -255,21 +247,15 @@ export class Ode {
       throw new Error('diffsol_ode_solve returned null solution handle');
     }
 
-    if (solution && outHandle === solutionHandle) {
-      return solution;
-    }
     return new Solution(this.runtime, this.memory, outHandle);
   }
 
   /**
    * Solve ODE at specific time points.
-   *
-   * If `solution` is provided, it is reused and returned.
    */
   solveDense(
     params: Float64Array,
-    tEval: Float64Array,
-    solution?: Solution
+    tEval: Float64Array
   ): Solution {
     this.checkHandle();
     const exports = this.runtime.exports as any;
@@ -281,7 +267,6 @@ export class Ode {
     this.writeToHostArray(tEvalArray, tEval);
 
     const outSolutionPtr = allocPtr(this.runtime);
-    const solutionHandle = solution ? solution.handle : 0;
 
     const result = exports.diffsol_ode_solve_dense(
       this.odeHandle,
@@ -289,7 +274,6 @@ export class Ode {
       params.length,
       this.getHostArrayPtr(tEvalArray),
       tEval.length,
-      solutionHandle,
       outSolutionPtr
     );
 
@@ -307,21 +291,15 @@ export class Ode {
       throw new Error('diffsol_ode_solve_dense returned null solution handle');
     }
 
-    if (solution && outHandle === solutionHandle) {
-      return solution;
-    }
     return new Solution(this.runtime, this.memory, outHandle);
   }
 
   /**
    * Solve ODE with forward sensitivities at specific time points.
-   *
-   * If `solution` is provided, it is reused and returned.
    */
   solveFwdSens(
     params: Float64Array,
-    tEval: Float64Array,
-    solution?: Solution
+    tEval: Float64Array
   ): Solution {
     this.checkHandle();
     const exports = this.runtime.exports as any;
@@ -333,7 +311,6 @@ export class Ode {
     this.writeToHostArray(tEvalArray, tEval);
 
     const outSolutionPtr = allocPtr(this.runtime);
-    const solutionHandle = solution ? solution.handle : 0;
 
     const result = exports.diffsol_ode_solve_fwd_sens(
       this.odeHandle,
@@ -341,7 +318,6 @@ export class Ode {
       params.length,
       this.getHostArrayPtr(tEvalArray),
       tEval.length,
-      solutionHandle,
       outSolutionPtr
     );
 
@@ -359,9 +335,6 @@ export class Ode {
       throw new Error('diffsol_ode_solve_fwd_sens returned null solution handle');
     }
 
-    if (solution && outHandle === solutionHandle) {
-      return solution;
-    }
     return new Solution(this.runtime, this.memory, outHandle);
   }
 
