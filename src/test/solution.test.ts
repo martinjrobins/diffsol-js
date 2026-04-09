@@ -60,30 +60,15 @@ describe('Solution Wrapper', () => {
     expect(ys[0].length).toBe(1);
   });
 
-  test('currentState can be read and updated', async () => {
+  test('solve returns a new solution instance for each call', async () => {
     ode = await compile(TEST_MODEL, config, MatrixType.FaerDense, LinearSolverType.Lu, OdeSolverType.Bdf);
 
     const params = new Float64Array([1.0]);
     solution = ode.solve(params, 0.5);
 
-    const state = solution.currentState;
-    expect(state.length).toBe(1);
-
-    const updated = new Float64Array([state[0] * 0.5]);
-    solution.currentState = updated;
-
-    const readBack = solution.currentState;
-    expect(readBack[0]).toBeCloseTo(updated[0], 12);
-  });
-
-  test('solve can reuse an existing solution instance', async () => {
-    ode = await compile(TEST_MODEL, config, MatrixType.FaerDense, LinearSolverType.Lu, OdeSolverType.Bdf);
-
-    const params = new Float64Array([1.0]);
-    solution = ode.solve(params, 0.5);
-
-    const reused = ode.solve(params, 1.0, solution);
-    expect(reused).toBe(solution);
+    const next = ode.solve(params, 1.0);
+    expect(next).not.toBe(solution);
+    next.dispose();
   });
 
   test('solveFwdSens returns a solution with trajectory data', async () => {

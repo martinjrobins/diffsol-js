@@ -29,7 +29,7 @@ async function build() {
       sourcemap: true,
       external: ['plotly.js'],
       loader: {
-        '.wasm': 'file',
+        '.wasm': 'binary',
       },
     });
 
@@ -45,7 +45,7 @@ async function build() {
       sourcemap: true,
       external: ['plotly.js'],
       loader: {
-        '.wasm': 'file',
+        '.wasm': 'binary',
       },
     });
 
@@ -63,7 +63,7 @@ async function build() {
       sourcemap: 'external',
       external: ['plotly.js'],
       loader: {
-        '.wasm': 'file',
+        '.wasm': 'binary',
       },
     });
 

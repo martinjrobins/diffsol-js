@@ -12,10 +12,9 @@ TypeScript/JavaScript bindings for the diffsol ODE solver with WebAssembly. See 
 npm install @martinjrobins/diffsol-js
 ```
 
-This package is a thin browser client. It requires a hosted diffsol backend that exposes:
+This package bundles the diffsol runtime WASM. It requires a hosted diffsol backend that exposes:
 
 - `POST /compile`
-- `GET /wasm/diffsol_js.wasm`
 
 The examples below use the public backend at `https://diffsol-js.fly.dev`.
 

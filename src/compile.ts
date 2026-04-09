@@ -12,6 +12,7 @@ import { Ode } from './ode';
 import { MatrixType } from './matrix-type';
 import { LinearSolverType } from './linear-solver-type';
 import { OdeSolverType } from './ode-solver-type';
+import runtimeWasmBytes from '../wasm/diffsol_c.wasm';
 
 export interface ModuleConfig {
   /** URL to the backend service that compiles models */
@@ -48,11 +49,62 @@ export interface DiffsolModules {
   memory: WebAssembly.Memory;
 }
 
+const REQUIRED_MODEL_SYMBOLS = [
+  'barrier_init',
+  'reset',
+  'reset_grad',
+  'reset_rgrad',
+  'reset_sgrad',
+  'reset_srgrad',
+  'set_constants',
+  'set_u0',
+  'rhs',
+  'rhs_grad',
+  'rhs_rgrad',
+  'rhs_sgrad',
+  'rhs_srgrad',
+  'mass',
+  'mass_rgrad',
+  'set_u0_grad',
+  'set_u0_rgrad',
+  'set_u0_sgrad',
+  'calc_out',
+  'calc_out_grad',
+  'calc_out_rgrad',
+  'calc_out_sgrad',
+  'calc_out_srgrad',
+  'calc_stop',
+  'calc_stop_grad',
+  'calc_stop_rgrad',
+  'calc_stop_sgrad',
+  'calc_stop_srgrad',
+  'set_id',
+  'get_dims',
+  'set_inputs',
+  'get_inputs',
+  'set_inputs_grad',
+  'set_inputs_rgrad',
+] as const;
+
+const OPTIONAL_MODEL_SYMBOLS = [
+  'barrier_init',
+  'reset',
+  'reset_grad',
+  'reset_rgrad', 'reset_sgrad', 'reset_srgrad',
+  'mass_rgrad',
+  'rhs_rgrad', 'rhs_sgrad', 'rhs_srgrad',
+  'set_u0_rgrad', 'set_u0_sgrad',
+  'calc_out_rgrad', 'calc_out_sgrad', 'calc_out_srgrad',
+  'calc_stop_grad',
+  'calc_stop_rgrad', 'calc_stop_sgrad', 'calc_stop_srgrad',
+  'set_inputs_rgrad',
+] as const;
+
 /**
- * Cache for compiled runtime modules, keyed by backend URL
- * This avoids re-fetching and re-compiling the runtime WASM on every model compilation
+ * Cache for the compiled runtime module.
+ * The runtime WASM is bundled with the package, so it is identical across backend URLs.
  */
-const runtimeModuleCache = new Map<string, WebAssembly.Module>();
+let runtimeModulePromise: Promise<WebAssembly.Module> | undefined;
 
 /**
  * Compile DiffSL code and create a ready-to-use ODE solver
@@ -82,33 +134,35 @@ export async function compile(
   });
 
   // Fetch and compile model from backend
-  console.log('Compiling DiffSL model...');
   const compileResp = await compileModel(diffslCode, config.backendUrl);
   const modelWasm = base64ToArrayBuffer(compileResp.wasm);
   const modelModule = await WebAssembly.compile(modelWasm);
 
-  // Load bundled runtime from backend (with caching)
-  const runtimeModule = await getCachedRuntimeModule(config.backendUrl);
+  // Load bundled runtime from the package (with caching)
+  const runtimeModule = await getCachedRuntimeModule();
 
-  // Build import objects
-  const modelImports = buildModelImports(memory);
-  const runtimeImports = buildRuntimeImports(memory, modelModule, modelImports);
+  let activeMemory = memory;
 
-  // Instantiate in correct order: model first, then runtime
-  console.log('Instantiating model module...');
-  const modelInstance = await WebAssembly.instantiate(modelModule, modelImports);
+  // Build runtime imports with shims first, so we can instantiate runtime
+  // even when model functions are only available after model instantiation.
+  const runtimeImports = buildRuntimeImports(activeMemory, () => activeMemory);
+  const modelFunctionTargets = installRuntimeModelFunctionShims(runtimeImports);
 
-  console.log('Instantiating runtime module...');
-  // Add model exports to runtime imports
-  addModelExportsToRuntimeImports(runtimeImports, modelInstance);
   const runtimeInstance = await WebAssembly.instantiate(runtimeModule, runtimeImports);
+  const exportedMemory = (runtimeInstance.exports as any).memory;
+  if (exportedMemory instanceof WebAssembly.Memory) {
+    activeMemory = exportedMemory;
+  }
 
-  console.log('Modules loaded and linked successfully');
+  // Instantiate model against the active runtime memory.
+  const modelImports = buildModelImports(activeMemory);
+  const modelInstance = await WebAssembly.instantiate(modelModule, modelImports);
+  bindModelExportsToTargets(modelFunctionTargets, modelInstance);
 
   const modules: DiffsolModules = {
     runtime: runtimeInstance,
     model: modelInstance,
-    memory,
+    memory: activeMemory,
   };
 
   // Create and return solver instance with dependency information and metadata
@@ -131,36 +185,14 @@ export async function compile(
 /**
  * Get or load the compiled runtime module, with caching
  */
-async function getCachedRuntimeModule(backendUrl: string): Promise<WebAssembly.Module> {
-  // Check cache first
-  if (runtimeModuleCache.has(backendUrl)) {
-    console.log('Using cached runtime module');
-    return runtimeModuleCache.get(backendUrl)!;
+async function getCachedRuntimeModule(): Promise<WebAssembly.Module> {
+  if (runtimeModulePromise) {
+    return runtimeModulePromise;
   }
 
-  // Not in cache - fetch and compile
-  console.log('Loading runtime module...');
-  const runtimeWasm = await loadBundledRuntime(backendUrl);
-  const runtimeModule = await WebAssembly.compile(runtimeWasm);
-  
-  // Store in cache
-  runtimeModuleCache.set(backendUrl, runtimeModule);
-  return runtimeModule;
-}
-
-/**
- * Load the bundled diffsol-js runtime WASM module from the backend server
- */
-async function loadBundledRuntime(backendUrl: string): Promise<ArrayBuffer> {
-  // Normalize backend URL by removing trailing slash
-  const normalizedUrl = backendUrl.replace(/\/$/, '');
-  
-  // Load from backend server which serves the bundled wasm file
-  const response = await fetch(`${normalizedUrl}/wasm/diffsol_js.wasm`);
-  if (!response.ok) {
-    throw new Error(`Failed to load runtime WASM: ${response.statusText}`);
-  }
-  return await response.arrayBuffer();
+  // Not in cache - compile the bundled runtime bytes
+  runtimeModulePromise = WebAssembly.compile(new Uint8Array(runtimeWasmBytes));
+  return runtimeModulePromise;
 }
 
 async function compileModel(diffslCode: string, backendUrl: string): Promise<CompileResponse> {
@@ -213,8 +245,7 @@ function buildModelImports(memory: WebAssembly.Memory): WebAssembly.Imports {
  */
 function buildRuntimeImports(
   memory: WebAssembly.Memory,
-  modelModule: WebAssembly.Module,
-  modelImports: WebAssembly.Imports
+  getMemory: () => WebAssembly.Memory
 ): WebAssembly.Imports {
   const imports: WebAssembly.Imports = {
     env: {
@@ -225,83 +256,59 @@ function buildRuntimeImports(
 
   // Add WASI imports if needed (for wasm32-wasip1 target)
   // This is a minimal WASI implementation for the functions we need
-  imports.wasi_snapshot_preview1 = buildWasiImports();
+  imports.wasi_snapshot_preview1 = buildWasiImports(getMemory);
 
   return imports;
 }
 
-/**
- * Add model exports to runtime imports
- * The runtime expects to import model functions like rhs, mass, get_dims, etc.
- */
-function addModelExportsToRuntimeImports(
-  runtimeImports: WebAssembly.Imports,
-  modelInstance: WebAssembly.Instance
-): void {
-  // Required model functions that runtime imports
-  const requiredSymbols = [
-    'barrier_init',
-    'set_constants',
-    'set_u0',
-    'rhs',
-    'rhs_grad',
-    'rhs_rgrad',
-    'rhs_sgrad',
-    'rhs_srgrad',
-    'mass',
-    'mass_rgrad',
-    'set_u0_grad',
-    'set_u0_rgrad',
-    'set_u0_sgrad',
-    'calc_out',
-    'calc_out_grad',
-    'calc_out_rgrad',
-    'calc_out_sgrad',
-    'calc_out_srgrad',
-    'calc_stop',
-    'set_id',
-    'get_dims',
-    'set_inputs',
-    'get_inputs',
-    'set_inputs_grad',
-    'set_inputs_rgrad',
-  ];
-
-  // Create env namespace if it doesn't exist
+function installRuntimeModelFunctionShims(
+  runtimeImports: WebAssembly.Imports
+): Record<string, Function> {
+  const targets: Record<string, Function> = {};
   if (!runtimeImports.env) {
     runtimeImports.env = {};
   }
 
+  for (const symbol of REQUIRED_MODEL_SYMBOLS) {
+    (runtimeImports.env as Record<string, WebAssembly.ExportValue>)[symbol] =
+      (...args: unknown[]) => {
+        const fn = targets[symbol];
+        if (fn) {
+          return fn(...args);
+        }
+        return 0;
+      };
+  }
+
+  return targets;
+}
+
+function bindModelExportsToTargets(
+  targets: Record<string, Function>,
+  modelInstance: WebAssembly.Instance
+): void {
+  const wrapModelFunction = (fn: Function) => (...args: unknown[]) => fn(...args);
+
   // Map model exports to runtime imports
   const exports = modelInstance.exports as Record<string, WebAssembly.ExportValue>;
-  for (const symbol of requiredSymbols) {
-    if (exports[symbol]) {
-      (runtimeImports.env as Record<string, WebAssembly.ExportValue>)[symbol] = exports[symbol];
+  for (const symbol of REQUIRED_MODEL_SYMBOLS) {
+    const exported = exports[symbol];
+    if (typeof exported === 'function') {
+      targets[symbol] = wrapModelFunction(exported);
     }
   }
-
-  // Validate that required symbols are present
-  // Note: *_rgrad, *_sgrad, and *_srgrad functions are optional
-  // Note: mass_rgrad is optional
-  const optionalSymbols = [
-    'barrier_init',
-    'mass_rgrad',
-    'rhs_rgrad', 'rhs_sgrad', 'rhs_srgrad',
-    'set_u0_rgrad', 'set_u0_sgrad',
-    'calc_out_rgrad', 'calc_out_sgrad', 'calc_out_srgrad',
-    'set_inputs_rgrad',
-  ];
 
   // Provide no-op stubs for optional symbols not exported by the model
-  for (const symbol of optionalSymbols) {
+  for (const symbol of OPTIONAL_MODEL_SYMBOLS) {
     if (!exports[symbol]) {
-      (runtimeImports.env as Record<string, WebAssembly.ExportValue>)[symbol] = () => 0;
+      targets[symbol] = () => 0;
     }
   }
-  
-  const missingSymbols = requiredSymbols
+
+  const optionalSymbolSet = new Set<string>(OPTIONAL_MODEL_SYMBOLS as readonly string[]);
+  const missingSymbols = REQUIRED_MODEL_SYMBOLS
     .filter(sym => !exports[sym])
-    .filter(sym => !optionalSymbols.includes(sym));
+    .filter(sym => !optionalSymbolSet.has(sym));
 
   if (missingSymbols.length > 0) {
     console.warn('Missing required symbols from model:', missingSymbols);
@@ -313,30 +320,19 @@ function addModelExportsToRuntimeImports(
  * Minimal WASI imports (stub implementations)
  * Only needed if runtime is built with wasm32-wasip1 target
  */
-function buildWasiImports(): Record<string, Function> {
+function buildWasiImports(getMemory: () => WebAssembly.Memory): Record<string, Function> {
+  void getMemory;
   return {
-    // Stub implementations - these shouldn't be called in normal operation
-    proc_exit: (code: number) => {
-      throw new Error(`WASI proc_exit called with code ${code}`);
-    },
-    fd_write: () => {
-      // Ignore writes
-      return 0;
-    },
+    proc_exit: () => 0,
+    fd_write: () => 0,
     fd_close: () => 0,
     fd_seek: () => 0,
     fd_read: () => 0,
     environ_sizes_get: () => 0,
     environ_get: () => 0,
-    random_get: (buf: number, buf_len: number) => {
-      // Use crypto.getRandomValues if available
-      if (typeof crypto !== 'undefined' && 'getRandomValues' in crypto) {
-        // This is a stub - proper implementation would write to memory
-        return 0;
-      }
-      return 0;
-    },
-    // Additional WASI functions that might be imported
+    args_sizes_get: () => 0,
+    args_get: () => 0,
+    random_get: () => 0,
     sched_yield: () => 0,
     clock_time_get: () => 0,
     clock_res_get: () => 0,
@@ -353,8 +349,6 @@ function buildWasiImports(): Record<string, Function> {
     sock_getsockopt: () => 0,
     sock_getpeername: () => 0,
     sock_getsockname: () => 0,
-    args_get: () => 0,
-    args_sizes_get: () => 0,
   };
 }
 

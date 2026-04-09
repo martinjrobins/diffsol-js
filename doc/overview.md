@@ -12,9 +12,9 @@ diffsol is a high-performance ordinary differential equation (ODE) solver writte
 
 The library uses a two-module architecture for optimal performance:
 
-1. **Runtime Module** (`diffsol_js.wasm`)
+1. **Runtime Module** (`diffsol_c.wasm`)
    - Pre-compiled ODE solver implementation
-   - Served by backend at `/wasm/diffsol_js.wasm`
+   - Bundled with the `@martinjrobins/diffsol-js` package
    - Cached after first load
 
 2. **Model Module**
@@ -40,9 +40,8 @@ Via CDN for browsers:
 ## Requirements
 
 - Node.js 18+ or modern browser with WebAssembly support
-- Backend service running (for model compilation and serving runtime WASM)
-  - Provides `/compile` endpoint for model compilation
-  - Serves runtime WASM at `/wasm/diffsol_js.wasm`
+- Backend service running (for model compilation)
+   - Provides `/compile` endpoint for model compilation
   - Serves API docs at `/docs/`
   - Public version available at `https://diffsol-js.fly.dev/`
 

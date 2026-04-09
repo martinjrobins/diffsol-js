@@ -6,8 +6,7 @@ import {
   freeU32,
   getPtr,
   getU32,
-  F64_BYTES,
-  F64_ALIGN
+  F64_BYTES
 } from './mem-utils';
 
 const solutionFinalizationRegistry = new FinalizationRegistry((heldValue: { dispose: () => void }) => {
@@ -21,7 +20,6 @@ const solutionFinalizationRegistry = new FinalizationRegistry((heldValue: { disp
  * - `ys`: 2D state trajectory (columns are time points)
  * - `ts`: solver time points
  * - `sens`: optional forward sensitivities
- * - `currentState`: mutable current solver state
  */
 export class Solution {
   constructor(
@@ -111,41 +109,6 @@ export class Solution {
     }
     exports.diffsol_host_array_list_free(listPtr, len);
     return sens;
-  }
-
-  get currentState(): Float64Array {
-    const exports = this.runtime.exports as any;
-    const outArrayPtr = allocPtr(this.runtime);
-    const result = exports.diffsol_solution_wrapper_get_current_state(this.handle, outArrayPtr);
-    if (result !== DIFFSOL_OK) {
-      freePtr(this.runtime, outArrayPtr);
-      throw getLastError(this.runtime, this.memory);
-    }
-    const arrayPtr = getPtr(this.memory, outArrayPtr);
-    freePtr(this.runtime, outArrayPtr);
-    const state = this.readHostArray(arrayPtr);
-    this.freeHostArray(arrayPtr);
-    return state;
-  }
-
-  set currentState(y: Float64Array) {
-    const exports = this.runtime.exports as any;
-    const byteLen = y.length * F64_BYTES;
-    const yPtr = exports.diffsol_alloc(byteLen, F64_ALIGN);
-    if (yPtr === 0) {
-      throw new Error('Failed to allocate memory for currentState');
-    }
-
-    try {
-      const yMem = new Float64Array(this.memory.buffer, yPtr, y.length);
-      yMem.set(y);
-      const result = exports.diffsol_solution_wrapper_set_current_state(this.handle, yPtr, y.length);
-      if (result !== DIFFSOL_OK) {
-        throw getLastError(this.runtime, this.memory);
-      }
-    } finally {
-      exports.diffsol_free(yPtr, byteLen, F64_ALIGN);
-    }
   }
 
   private checkHandle(): void {

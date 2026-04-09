@@ -22,7 +22,7 @@ async function compile(
 
 - **`diffslCode`** - DiffSL source code defining your ODE system
 - **`config`** - Configuration for WASM modules ([`ModuleConfig`](../interfaces/index.ModuleConfig.html))
-  - `backendUrl` - URL to the backend compilation service (also serves runtime WASM)
+  - `backendUrl` - URL to the backend compilation service
   - `initialMemoryPages?` - Initial memory size in pages, 64KB each (default: 256 = 16MB)
   - `maxMemoryPages?` - Maximum memory size in pages (default: 32768 = 2GB)
   - `sharedMemory?` - Enable shared memory for threading (default: false, not yet supported)
