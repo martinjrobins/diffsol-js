@@ -79,8 +79,11 @@ describe('Solution Wrapper', () => {
     solution = ode.solveFwdSens(params, tEval);
 
     const ys = solution.ys;
+    const sens = solution.sens;
     expect(ys.length).toBe(tEval.length);
     expect(ys[0].length).toBe(1);
+    expect(sens).toHaveLength(1);
+    expect(sens[0]).toHaveLength(tEval.length);
   });
 
   test('dispose invalidates handle access', async () => {
