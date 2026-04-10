@@ -251,6 +251,42 @@ export class Ode {
   }
 
   /**
+   * Solve a hybrid ODE to final time, automatically applying resets after roots.
+   */
+  solveHybrid(params: Float64Array, finalTime: number): Solution {
+    this.checkHandle();
+    const exports = this.runtime.exports as any;
+
+    const paramsArray = this.allocateHostArray(params.length, ScalarType.F64);
+    this.writeToHostArray(paramsArray, params);
+
+    const outSolutionPtr = allocPtr(this.runtime);
+
+    const result = exports.diffsol_ode_solve_hybrid(
+      this.odeHandle,
+      this.getHostArrayPtr(paramsArray),
+      params.length,
+      finalTime,
+      outSolutionPtr
+    );
+
+    this.freeHostArray(paramsArray);
+
+    if (result !== DIFFSOL_OK) {
+      freePtr(this.runtime, outSolutionPtr);
+      throw getLastError(this.runtime, this.memory);
+    }
+
+    const outHandle = getPtr(this.memory, outSolutionPtr);
+    freePtr(this.runtime, outSolutionPtr);
+    if (outHandle === 0) {
+      throw new Error('diffsol_ode_solve_hybrid returned null solution handle');
+    }
+
+    return new Solution(this.runtime, this.memory, outHandle);
+  }
+
+  /**
    * Solve ODE at specific time points.
    */
   solveDense(
@@ -295,6 +331,50 @@ export class Ode {
   }
 
   /**
+   * Solve a hybrid ODE at specific time points, automatically applying resets after roots.
+   */
+  solveHybridDense(
+    params: Float64Array,
+    tEval: Float64Array
+  ): Solution {
+    this.checkHandle();
+    const exports = this.runtime.exports as any;
+
+    const paramsArray = this.allocateHostArray(params.length, ScalarType.F64);
+    this.writeToHostArray(paramsArray, params);
+
+    const tEvalArray = this.allocateHostArray(tEval.length, ScalarType.F64);
+    this.writeToHostArray(tEvalArray, tEval);
+
+    const outSolutionPtr = allocPtr(this.runtime);
+
+    const result = exports.diffsol_ode_solve_hybrid_dense(
+      this.odeHandle,
+      this.getHostArrayPtr(paramsArray),
+      params.length,
+      this.getHostArrayPtr(tEvalArray),
+      tEval.length,
+      outSolutionPtr
+    );
+
+    this.freeHostArray(paramsArray);
+    this.freeHostArray(tEvalArray);
+
+    if (result !== DIFFSOL_OK) {
+      freePtr(this.runtime, outSolutionPtr);
+      throw getLastError(this.runtime, this.memory);
+    }
+
+    const outHandle = getPtr(this.memory, outSolutionPtr);
+    freePtr(this.runtime, outSolutionPtr);
+    if (outHandle === 0) {
+      throw new Error('diffsol_ode_solve_hybrid_dense returned null solution handle');
+    }
+
+    return new Solution(this.runtime, this.memory, outHandle);
+  }
+
+  /**
    * Solve ODE with forward sensitivities at specific time points.
    */
   solveFwdSens(
@@ -333,6 +413,53 @@ export class Ode {
     freePtr(this.runtime, outSolutionPtr);
     if (outHandle === 0) {
       throw new Error('diffsol_ode_solve_fwd_sens returned null solution handle');
+    }
+
+    return new Solution(this.runtime, this.memory, outHandle);
+  }
+
+  /**
+   * Solve a hybrid ODE with forward sensitivities at specific time points.
+   *
+   * The returned solution contains state values in `ys`, evaluation times in `ts`,
+   * and parameter sensitivities in `sens`.
+   */
+  solveHybridFwdSens(
+    params: Float64Array,
+    tEval: Float64Array
+  ): Solution {
+    this.checkHandle();
+    const exports = this.runtime.exports as any;
+
+    const paramsArray = this.allocateHostArray(params.length, ScalarType.F64);
+    this.writeToHostArray(paramsArray, params);
+
+    const tEvalArray = this.allocateHostArray(tEval.length, ScalarType.F64);
+    this.writeToHostArray(tEvalArray, tEval);
+
+    const outSolutionPtr = allocPtr(this.runtime);
+
+    const result = exports.diffsol_ode_solve_hybrid_fwd_sens(
+      this.odeHandle,
+      this.getHostArrayPtr(paramsArray),
+      params.length,
+      this.getHostArrayPtr(tEvalArray),
+      tEval.length,
+      outSolutionPtr
+    );
+
+    this.freeHostArray(paramsArray);
+    this.freeHostArray(tEvalArray);
+
+    if (result !== DIFFSOL_OK) {
+      freePtr(this.runtime, outSolutionPtr);
+      throw getLastError(this.runtime, this.memory);
+    }
+
+    const outHandle = getPtr(this.memory, outSolutionPtr);
+    freePtr(this.runtime, outSolutionPtr);
+    if (outHandle === 0) {
+      throw new Error('diffsol_ode_solve_hybrid_fwd_sens returned null solution handle');
     }
 
     return new Solution(this.runtime, this.memory, outHandle);

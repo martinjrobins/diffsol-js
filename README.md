@@ -61,6 +61,14 @@ solution.dispose();
 ode.dispose();
 ```
 
+For models with `stop_i` and `reset_i` definitions, the `Ode` class also exposes hybrid solve methods that continue automatically after root events:
+
+```ts
+const hybridSolution = ode.solveHybrid(params, 5.0);
+const hybridDenseSolution = ode.solveHybridDense(params, tEval);
+const hybridSensSolution = ode.solveHybridFwdSens(params, tEval);
+```
+
 ## Interactive Solver UI
 
 The package also ships the interactive solver stylesheet:

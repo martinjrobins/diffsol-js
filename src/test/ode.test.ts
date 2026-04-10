@@ -22,6 +22,39 @@ F_i { -k * y }
 out_i { y }
 `;
 
+const HYBRID_TEST_MODEL = `
+in_i { r = 1 }
+u_i { y = 0.1 }
+dudt_i { dydt = 0 }
+F_i { (r * y) * (1 - y) }
+stop_i { y - 0.9 }
+reset_i { 0.1 }
+out_i { y }
+`;
+
+const HYBRID_X0 = 0.1;
+
+function logisticState(x0: number, r: number, t: number): number {
+  const expRt = Math.exp(r * t);
+  return (x0 * expRt) / (1 - x0 + x0 * expRt);
+}
+
+function hybridLogisticPeriod(r: number): number {
+  return Math.log(81) / r;
+}
+
+function hybridLogisticState(r: number, t: number): number {
+  const tau = hybridLogisticPeriod(r);
+  const cycles = Math.floor(t / tau);
+  const localT = t - cycles * tau;
+  return logisticState(HYBRID_X0, r, localT);
+}
+
+function hybridLogisticStateDr(r: number, t: number): number {
+  const x = hybridLogisticState(r, t);
+  return t * x * (1 - x);
+}
+
 const config = {
   backendUrl: TEST_BACKEND_URL,
 };
@@ -354,6 +387,90 @@ describe('diffsol WASM Integration', () => {
       } finally {
         solution1.dispose();
         solution2.dispose();
+      }
+    });
+  });
+
+  describe('Hybrid ODE Solve', () => {
+    const r = 2.0;
+    const finalTime = 5.0;
+    const tEval = new Float64Array([0.5, 1.0, 2.0, 2.5, 3.0, 4.0, 4.8]);
+
+    beforeEach(async () => {
+      ode = await compile(
+        HYBRID_TEST_MODEL,
+        config,
+        MatrixType.NalgebraDense,
+        LinearSolverType.Lu,
+        OdeSolverType.Bdf
+      );
+      ode.rtol = 1e-8;
+      ode.atol = 1e-8;
+    });
+
+    test('should solve hybrid ODE to final time across reset events', () => {
+      expect(ode).toBeDefined();
+      const params = new Float64Array([r]);
+      const tau = hybridLogisticPeriod(r);
+
+      const solution = ode!.solveHybrid(params, finalTime);
+      try {
+        const ys = solution.ys;
+        const ts = solution.ts;
+
+        expect(ts.length).toBeGreaterThan(0);
+        expect(ys).toHaveLength(ts.length);
+        expect(ts[ts.length - 1]).toBeCloseTo(finalTime, 3);
+        expect(ts.some(t => t < tau)).toBe(true);
+        expect(ts.some(t => t > tau)).toBe(true);
+        expect(ys[ys.length - 1][0]).toBeCloseTo(hybridLogisticState(r, finalTime), 3);
+      } finally {
+        solution.dispose();
+      }
+    });
+
+    test('should solve hybrid ODE at specific time points', () => {
+      expect(ode).toBeDefined();
+      const params = new Float64Array([r]);
+
+      const solution = ode!.solveHybridDense(params, tEval);
+      try {
+        const ys = solution.ys;
+        const ts = solution.ts;
+
+        expect(Array.from(ts)).toEqual(Array.from(tEval));
+        expect(ys).toHaveLength(tEval.length);
+
+        for (let i = 0; i < tEval.length; i++) {
+          expect(ys[i][0]).toBeCloseTo(hybridLogisticState(r, tEval[i]), 3);
+        }
+      } finally {
+        solution.dispose();
+      }
+    });
+
+    test('should solve hybrid ODE forward sensitivities across reset events', () => {
+      expect(ode).toBeDefined();
+      const params = new Float64Array([r]);
+
+      const solution = ode!.solveHybridFwdSens(params, tEval);
+      try {
+        const ys = solution.ys;
+        const ts = solution.ts;
+        const sens = solution.sens;
+
+        expect(Array.from(ts)).toEqual(Array.from(tEval));
+        expect(ys).toHaveLength(tEval.length);
+        expect(sens).toHaveLength(1);
+        expect(sens[0]).toHaveLength(tEval.length);
+
+        for (let i = 0; i < tEval.length; i++) {
+          expect(ys[i][0]).toBeCloseTo(hybridLogisticState(r, tEval[i]), 3);
+          expect(Number.isFinite(sens[0][i][0])).toBe(true);
+          expect(sens[0][i][0]).toBeCloseTo(hybridLogisticStateDr(r, tEval[i]), 3);
+        }
+      } finally {
+        solution.dispose();
       }
     });
   });
